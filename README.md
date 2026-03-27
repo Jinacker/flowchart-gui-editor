@@ -1,7 +1,14 @@
-# mermaid-flow-editor
+# mermaid2vueflow-gui-editor
+
+### 배경
+고객사 연구원들이 플로우차트 수정하려할때 기존에는 mermaid chart code를 직접 수정하는 방식
+=> 코드로 수정을 하다보니까 러닝커브가 불편함으로 다가왔고 직관적으로 수정가능한 gui editor 필요성 제기.
 
 Mermaid flowchart를 GUI로 편집할 수 있는 **Vue 3 + VueFlow** 기반 에디터.
 기존 Vue 2 웹 애플리케이션 안에 독립 island로 삽입되어 동작한다.
+
+사내 프로젝트에서 Vue 2를 사용하는데, Vue Flow는 Vue3 에서만 지원.
+=> Vue 3로 전체 시스템을 업그레이드 하는건 불가능하기에 외부에서 번들링하여 빌드된 결과물을 삽입하는 방식을 채택했다.
 
 ---
 
