@@ -1,0 +1,27 @@
+/**
+ * island.css
+ *
+ * #mermaid-gui-editor 컨테이너를 Bootstrap/기존 CSS로부터 격리한다.
+ * 이 파일은 CfgSettingModal.css 또는 jspf에 직접 포함된다.
+ * (main.js에서 import 하지 않음 — 기존 JSP 페이지에서 <link>로 포함)
+ */
+
+/* 컨테이너 격리: Bootstrap .modal-body 스타일이 VueFlow 내부로 침투하지 않도록 */
+#mermaid-gui-editor {
+  all: initial;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  color: #333;
+  position: relative;
+  overflow: hidden;
+}
+
+#mermaid-gui-editor *,
+#mermaid-gui-editor *::before,
+#mermaid-gui-editor *::after {
+  box-sizing: border-box;
+}

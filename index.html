@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mermaid Flow Editor - Dev Harness</title>
+  <style>
+    body { margin: 0; padding: 20px; background: #f0f0f0; font-family: sans-serif; }
+    h2 { margin: 0 0 12px; font-size: 16px; color: #333; }
+    #mermaid-gui-editor {
+      width: 680px;
+      height: 600px;
+      border: 1px solid #ccc;
+      background: white;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    #output {
+      margin-top: 16px;
+      padding: 12px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 6px;
+      font-size: 13px;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+      width: 680px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Mermaid Flow Editor — 개발 테스트 하네스</h2>
+  <div id="mermaid-gui-editor"></div>
+  <div id="output">// 생성된 Mermaid 코드가 여기에 표시됩니다</div>
+
+  <script type="module" src="/src/main.js"></script>
+  <script type="module">
+    // dev 모드에서는 main.js가 직접 로드되므로 약간의 딜레이 후 마운트
+    setTimeout(() => {
+      if (!window.MermaidFlowEditor) {
+        document.getElementById('output').textContent = '// MermaidFlowEditor 로드 실패'
+        return
+      }
+
+      const instance = window.MermaidFlowEditor.mount('#mermaid-gui-editor',
+        `flowchart TD
+  A([시작]) --> B{조건 분기}
+  B -->|예| C[처리 A]
+  B -->|아니오| D[처리 B]
+  C --> E([완료])
+  D --> E`
+      )
+
+      document.getElementById('mermaid-gui-editor').addEventListener(
+        'mermaid-flow-editor:change',
+        (e) => {
+          document.getElementById('output').textContent = e.detail.mermaid
+        }
+      )
+    }, 100)
+  </script>
+</body>
+</html>
