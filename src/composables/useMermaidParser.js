@@ -26,6 +26,8 @@
  *   preservedLines[] 에 보관 후 toMermaid() 출력 끝에 복원
  */
 
+import { layoutWithGraphviz } from './graphvizLayout.js'
+
 /** @typedef {{ id: string, label: string, shape: string }} RawNode */
 /** @typedef {{ id: string, source: string, target: string, label: string }} RawEdge */
 
@@ -111,114 +113,16 @@ function parseEdgeLine(line) {
   return null
 }
 
-// ── 레이아웃: 위상 정렬 기반 좌표 배치 ────────────────────────────────────
-
-/**
- * 노드/엣지 배열로 depth(layer)를 계산한 뒤 X/Y 좌표를 부여한다.
- * direction(TD/LR/BT/RL)에 따라 축 방향을 결정한다.
- */
-function assignLayout(rawNodes, rawEdges, direction = 'TD') {
-  const NODE_W = 180  // 노드 너비
-  const NODE_H = 55   // 노드 높이
-  const CROSS_GAP = 100  // 같은 depth 내 노드 간 간격
-  const DEPTH_GAP = 130  // depth 레이어 간 간격
-
-  // 인접 리스트
-  const children = {}
-  const parents = {}
-  rawNodes.forEach(n => { children[n.id] = []; parents[n.id] = [] })
-  rawEdges.forEach(e => {
-    if (children[e.source]) children[e.source].push(e.target)
-    if (parents[e.target]) parents[e.target].push(e.source)
-  })
-
-  // Step 1: BFS로 depth 계산 (루트: 부모 없는 노드)
-  const depth = {}
-  const queue = []
-  rawNodes.forEach(n => {
-    if (parents[n.id].length === 0) {
-      depth[n.id] = 0
-      queue.push(n.id)
-    }
-  })
-
-  const visited = new Set(queue)
-  let qi = 0
-  while (qi < queue.length) {
-    const nid = queue[qi++]
-    for (const child of children[nid]) {
-      if (!visited.has(child)) {
-        visited.add(child)
-        depth[child] = depth[nid] + 1
-        queue.push(child)
-      }
-    }
-  }
-
-  // Step 2: 사이클로 인해 depth 미할당된 노드 처리
-  // 부모 중 depth가 정해진 노드의 최대값 + 1을 반복 전파
-  let maxIter = rawNodes.length
-  while (maxIter-- > 0) {
-    let changed = false
-    rawNodes.forEach(n => {
-      if (depth[n.id] === undefined) {
-        const parentDepths = parents[n.id]
-          .filter(p => depth[p] !== undefined)
-          .map(p => depth[p])
-        if (parentDepths.length > 0) {
-          depth[n.id] = Math.max(...parentDepths) + 1
-          changed = true
-        }
-      }
-    })
-    if (!changed) break
-  }
-  // 완전히 고립된 사이클은 0
-  rawNodes.forEach(n => { if (depth[n.id] === undefined) depth[n.id] = 0 })
-
-  // depth별 노드 목록
-  const byDepth = {}
-  rawNodes.forEach(n => {
-    const d = depth[n.id] ?? 0
-    if (!byDepth[d]) byDepth[d] = []
-    byDepth[d].push(n.id)
-  })
-
-  // depth별 최대 노드 수 (중앙 정렬용)
-  const maxCount = Math.max(...Object.values(byDepth).map(ids => ids.length))
-
-  const isVertical = direction === 'TD' || direction === 'TB' || direction === 'BT'
-  const isReverse  = direction === 'BT' || direction === 'RL'
-  const maxDepth   = Math.max(...Object.keys(byDepth).map(Number))
-
-  const positions = {}
-  Object.entries(byDepth).forEach(([d, ids]) => {
-    const di = isReverse ? maxDepth - Number(d) : Number(d)
-    // 같은 레이어의 노드들을 중앙 정렬
-    const totalCross = ids.length * (isVertical ? NODE_W : NODE_H) + (ids.length - 1) * CROSS_GAP
-    const startOffset = (maxCount * (isVertical ? NODE_W : NODE_H) + (maxCount - 1) * CROSS_GAP - totalCross) / 2
-
-    ids.forEach((id, i) => {
-      const crossPos = startOffset + i * ((isVertical ? NODE_W : NODE_H) + CROSS_GAP)
-      const depthPos = di * (((isVertical ? NODE_H : NODE_W)) + DEPTH_GAP)
-      positions[id] = isVertical
-        ? { x: crossPos, y: depthPos }
-        : { x: depthPos, y: crossPos }
-    })
-  })
-
-  return positions
-}
-
 // ── 공개 API ───────────────────────────────────────────────────────────────
 
 /**
  * Mermaid flowchart 텍스트를 VueFlow nodes/edges 배열로 변환한다.
+ * Graphviz dot 엔진으로 좌표 계산.
  *
  * @param {string} mermaidText
- * @returns {{ nodes: object[], edges: object[], direction: string, preservedLines: string[] }}
+ * @returns {Promise<{ nodes: object[], edges: object[], direction: string, preservedLines: string[] }>}
  */
-export function parseMermaid(mermaidText) {
+export async function parseMermaid(mermaidText) {
   if (!mermaidText || !mermaidText.trim()) {
     return { nodes: [], edges: [], direction: 'TD', preservedLines: [] }
   }
@@ -279,7 +183,8 @@ export function parseMermaid(mermaidText) {
   }
 
   const rawNodes = Array.from(nodesMap.values())
-  const positions = assignLayout(rawNodes, rawEdges, direction)
+
+  const positions = await layoutWithGraphviz(rawNodes, rawEdges, direction)
 
   const nodes = rawNodes.map(n => ({
     id: n.id,

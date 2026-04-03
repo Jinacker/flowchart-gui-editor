@@ -19,10 +19,10 @@ const props = defineProps({
 
 const parsedElements = ref({ nodes: [], edges: [], direction: 'TD', preservedLines: [] })
 
-onMounted(() => {
+onMounted(async () => {
   if (props.initialMermaid && props.initialMermaid.trim()) {
     try {
-      parsedElements.value = parseMermaid(props.initialMermaid)
+      parsedElements.value = await parseMermaid(props.initialMermaid)
     } catch (e) {
       console.warn('[MermaidFlowEditor] 파싱 실패, 빈 캔버스로 시작합니다.', e)
     }
